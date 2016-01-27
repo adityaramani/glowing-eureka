@@ -19,5 +19,15 @@ if (len(sys.argv)):
 
     path = x[ (x.find('href="') +6) :( x.find('/">'))]
     url='https://kat.cr'+path
-    print(url)
-    webbrowser.open(url)
+    res=requests.get(url)
+    #output = open('Page.txt', 'wb')
+    #for chunk in res.iter_content(100000):
+    #    output.write(chunk)
+
+    #output.close()
+
+    #output = open('Page.txt', 'r')
+    getEpi= bs4.BeautifulSoup(res.text,"html.parser")
+
+    x=getEpi.find_all('h1')
+    print(x)
