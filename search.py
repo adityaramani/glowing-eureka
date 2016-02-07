@@ -1,4 +1,5 @@
 import sys
+from time import sleep
 from dateutil.relativedelta import *
 import requests,bs4
 import datetime
@@ -14,99 +15,52 @@ proxyDict = {
               "https" : https_proxy,
               "ftp"   : ftp_proxy
             }
-
+headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
 
 if (len(sys.argv)):
 
     args=sys.argv[1:]
+    url= link + '+'.join(list(map(str,args)))
+    name=' '.join(args)
+    option = int(input("Enter Your Option : \n 1) Download Latest Episode \n 2) Choose From List"))
+    while(option not in range(1,3)):
+        option =int(input(" Wrong Choice Please Enter Correct Option as Shown Above : "))
 
-    #url= link + '+'.join(list(map(str,args)))
-    url='https://kat.cr/usearch/the%20big%20bang%20theory/'
+    path=functions.findInitialPage(url,name)
+    seriesLink="https://kat.cr"+path+'/torrents/'
+    if(option == 1):
+        seasonNo=functions.getEpisodeList(name)
+        reqEpi= functions.calulations(name)
+        print("donr 1 \n\n\n")
+        if(reqEpi):
+            sleep(10)
 
-    res=requests.get(url,proxies=proxyDict)
-    try:
-        res.raise_for_status()
-    except Exception as exc:
-        print('There was a problem: %s' % (exc))
-    op= open("OutPut Page.txt",'wb')
-    scrape= bs4.BeautifulSoup(res.text,"html.parser")
-    x=str(scrape.find_all('h1'))
-    #print(x.get('href'))
+            res=requests.get(seriesLink,headers=headers)
 
-    path = x [ (x.find('href="') +6) :( x.find('/">'))]
-    url='https://kat.cr'+path
-    res=requests.get(url,proxies=proxyDict)
-    fout = open("Result.html",'wb')
-    for i in res.iter_content(2000):
-        fout.write(i)
-
-    fout.close()
-
-    url='https://kat.cr'+path
-    print(path)
-
-
-    soup = bs4.BeautifulSoup(open("Result.html"), "html.parser")
-    body= open("EpiDetails.txt",'w')
-    epiName=soup.find_all('span', class_="versionsEpName")
-    epiNo=soup.find_all('span', class_="versionsEpNo")
-    epiDate=soup.find_all('span', class_="versionsEpDate")
-    seasonNo= soup.find_all('h3')
-    seasonNo=seasonNo[0].get_text()
-    for x in range(5):
-        body.write(epiDate[x].get_text().strip() +'-'+ epiNo[x].get_text().strip()+ '-'+epiName[x].get_text().strip())
-        body.write('\n')
-    body.close()
-    body= open("EpiDetails.txt",'r')
-    l=[body.readline().split('-')[0] for i in range(5)]
-    temp=l
-    l=list(map(parse,l))
-
-    today=datetime.datetime.now()
-
-
-    rel=[]
-    for i in l:
-        rel.append(str(relativedelta(today,i)))
-
-    days=[]
-    for i in rel:
-
-        if (('month' or 'year') not in i):
-            i=i[i.index("days=")+5:]
-            day= i.split(',')[0]
-            days.append(int(day))
-    epDict={}
-    for i in range(len(days)):
-        epDict[days[i]]= temp[i]
-
-    days=list(filter(lambda x :x >=0 , days))
-    days.sort()
-    reqEpiDate= epDict[days[0]]
-
-    body.close()
-    body= open("EpiDetails.txt",'r')
-    for i in body.readlines():
-        if( reqEpiDate in i):
-            reqEpi = i
-            break
-
-    if(reqEpi):
-        res=requests.get(url+'/torrents/')
-        torrentPage = open("Torrent Page.html",'wb')
-        for i in res.iter_content(1000):
-            torrentPage.write(i)
-        torrentPage.close()
-
+            torrentPage = open(name+"Torrent Page.html",'wb')
+            for i in res.iter_content(1000):
+                torrentPage.write(i)
+            torrentPage.close()
+            reqEpi=functions.findReducedEpi(seasonNo,reqEpi)
+            shortlisted= functions.findShortList(reqEpi,name)
+            if(len(shortlisted) >0):
+                finalUrl=functions.produceFinalUrl(functions.bestMatch(shortlisted)[0])
+                functions.download(finalUrl)
+            else:
+                    print(" Sorry The Latest Episode Couldnt Be Found , Please try Option 2 ")
+        else:
+            print("Sorry No Match Found")
     else:
-        print("Sorry No Match Found")
-    
-
-
-    reqEpi=functions.findReducedEpi(seasonNo,reqEpi)
-
-    shortlisted= functions.findShortList(reqEpi)
-
-    finalUrl=functions.produceFinalUrl(functions.bestMatch(shortlisted)[0])
-    functions.download(finalUrl)
+        fin = open(name+"Torrent Page.html" ,'r')
+        if(fin):
+            res= requests.get("https://kat.cr"+path+'/torrents/',headers=headers)
+            for i in res.iter_content(1000):
+                fin.write(i)
+            fin.close()
+        elif( properties(fin)):
+            res= requests.get("https://kat.cr"+path+'/torrents/',headers=headers)
+            for i in res.iter_content(1000):
+                fin.write(i)
+            fin.close()
+        req=  addons.getRequiredEpisode(name,seriesLink)
